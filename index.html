@@ -288,12 +288,12 @@
   <div class="settings-section">
     <h3>Presets</h3>
     <div class="preset-row">
-      <button class="preset-btn" tabindex="-1" onclick="applyPreset('vortex')">Vortex</button>
-      <button class="preset-btn" tabindex="-1" onclick="applyPreset('smoke')">Wispy Smoke</button>
-      <button class="preset-btn" tabindex="-1" onclick="applyPreset('fluid')">Fluid Air</button>
-      <button class="preset-btn" tabindex="-1" onclick="applyPreset('plasma')">Plasma</button>
-      <button class="preset-btn" tabindex="-1" onclick="applyPreset('nebula')">Nebula</button>
-      <button class="preset-btn" tabindex="-1" onclick="applyPreset('ember')">Ember Trail</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('vortex',this)">Vortex</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('smoke',this)">Wispy Smoke</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('fluid',this)">Fluid Air</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('plasma',this)">Plasma</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('nebula',this)">Nebula</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('ember',this)">Ember Trail</button>
     </div>
   </div>
 
@@ -532,14 +532,14 @@ function setBlend(mode) {
   else document.getElementById('blendSource').classList.add('active');
 }
 
-function applyPreset(name) {
+function applyPreset(name, btn) {
   const p = presets[name];
   if (!p) return;
   Object.assign(fx, p);
   syncSlidersToFx();
   // Highlight active preset
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
 }
 
 // Init sliders
