@@ -279,21 +279,21 @@
 
 <canvas id="gameCanvas"></canvas>
 
-<button id="settingsBtn">SETTINGS</button>
+<button id="settingsBtn" tabindex="-1">SETTINGS</button>
 
 <div id="settingsPanel">
-  <button class="close-settings" onclick="toggleSettings()">&times;</button>
+  <button class="close-settings" tabindex="-1" onclick="toggleSettings()">&times;</button>
   <h2>VORTEX FX</h2>
 
   <div class="settings-section">
     <h3>Presets</h3>
     <div class="preset-row">
-      <button class="preset-btn" onclick="applyPreset('vortex')">Vortex</button>
-      <button class="preset-btn" onclick="applyPreset('smoke')">Wispy Smoke</button>
-      <button class="preset-btn" onclick="applyPreset('fluid')">Fluid Air</button>
-      <button class="preset-btn" onclick="applyPreset('plasma')">Plasma</button>
-      <button class="preset-btn" onclick="applyPreset('nebula')">Nebula</button>
-      <button class="preset-btn" onclick="applyPreset('ember')">Ember Trail</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('vortex')">Vortex</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('smoke')">Wispy Smoke</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('fluid')">Fluid Air</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('plasma')">Plasma</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('nebula')">Nebula</button>
+      <button class="preset-btn" tabindex="-1" onclick="applyPreset('ember')">Ember Trail</button>
     </div>
   </div>
 
@@ -388,9 +388,9 @@
   <div class="settings-section">
     <h3>Blending</h3>
     <div class="preset-row">
-      <button class="preset-btn" id="blendLighter" onclick="setBlend('lighter')">Additive</button>
-      <button class="preset-btn" id="blendScreen" onclick="setBlend('screen')">Screen</button>
-      <button class="preset-btn" id="blendSource" onclick="setBlend('source-over')">Normal</button>
+      <button class="preset-btn" tabindex="-1" id="blendLighter" onclick="setBlend('lighter')">Additive</button>
+      <button class="preset-btn" tabindex="-1" id="blendScreen" onclick="setBlend('screen')">Screen</button>
+      <button class="preset-btn" tabindex="-1" id="blendSource" onclick="setBlend('source-over')">Normal</button>
     </div>
   </div>
 </div>
@@ -1007,7 +1007,18 @@ loop();
 window.addEventListener('keydown', e => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
     e.preventDefault();
+    // Prevent buttons from capturing space
+    if (e.code === 'Space' && document.activeElement && document.activeElement !== document.body) {
+      document.activeElement.blur();
+    }
   }
+});
+
+// Ensure no element steals focus on load
+document.addEventListener('DOMContentLoaded', () => {
+  document.activeElement && document.activeElement.blur();
+  canvas.setAttribute('tabindex', '0');
+  canvas.focus();
 });
 </script>
 </body>
