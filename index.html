@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VORTEX PONG</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: 'Rajdhani', sans-serif;
+    cursor: none;
+    user-select: none;
+  }
+
+  #gameCanvas {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: block;
+  }
+
+  #overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  #overlay.visible {
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  #overlay h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 72px;
+    font-weight: 900;
+    letter-spacing: 12px;
+    background: linear-gradient(90deg, #ff0040, #ff8800, #ffdd00, #00ff88, #00bbff, #8800ff, #ff0040);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: rainbowShift 3s linear infinite;
+    text-shadow: none;
+    margin-bottom: 16px;
+  }
+
+  #overlay .subtitle {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  #overlay .prompt {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 4px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  #overlay .controls {
+    margin-top: 40px;
+    display: flex;
+    gap: 80px;
+    color: rgba(255,255,255,0.25);
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+
+  #overlay .controls div {
+    text-align: center;
+  }
+
+  #overlay .controls span {
+    display: block;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 6px;
+  }
+
+  #overlay .winner {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    margin-bottom: 32px;
+  }
+
+  @keyframes rainbowShift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.15; }
+  }
+
+  /* ─── Settings Panel ─── */
+  #settingsBtn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 20;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.5);
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+  }
+  #settingsBtn:hover {
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.8);
+    border-color: rgba(255,255,255,0.25);
+  }
+
+  #settingsPanel {
+    position: fixed;
+    top: 0; right: -380px;
+    width: 360px;
+    height: 100vh;
+    z-index: 25;
+    background: rgba(8, 8, 16, 0.95);
+    border-left: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(20px);
+    padding: 28px 24px;
+    overflow-y: auto;
+    transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    cursor: default;
+  }
+  #settingsPanel.open { right: 0; }
+
+  #settingsPanel::-webkit-scrollbar { width: 4px; }
+  #settingsPanel::-webkit-scrollbar-track { background: transparent; }
+  #settingsPanel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  #settingsPanel h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .settings-section {
+    margin-bottom: 28px;
+  }
+
+  .settings-section h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .preset-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .preset-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.45);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+  }
+  .preset-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.8);
+  }
+  .preset-btn.active {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.3);
+    color: #fff;
+  }
+
+  .slider-group {
+    margin-bottom: 16px;
+  }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .slider-label span {
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 1px;
+  }
+
+  .slider-label .val {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    border: 2px solid rgba(255,255,255,0.15);
+    transition: background 0.2s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    background: rgba(255,255,255,0.8);
+  }
+
+  .close-settings {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.3);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+  .close-settings:hover { color: rgba(255,255,255,0.7); }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<button id="settingsBtn">SETTINGS</button>
+
+<div id="settingsPanel">
+  <button class="close-settings" onclick="toggleSettings()">&times;</button>
+  <h2>VORTEX FX</h2>
+
+  <div class="settings-section">
+    <h3>Presets</h3>
+    <div class="preset-row">
+      <button class="preset-btn" onclick="applyPreset('vortex')">Vortex</button>
+      <button class="preset-btn" onclick="applyPreset('smoke')">Wispy Smoke</button>
+      <button class="preset-btn" onclick="applyPreset('fluid')">Fluid Air</button>
+      <button class="preset-btn" onclick="applyPreset('plasma')">Plasma</button>
+      <button class="preset-btn" onclick="applyPreset('nebula')">Nebula</button>
+      <button class="preset-btn" onclick="applyPreset('ember')">Ember Trail</button>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <h3>Particle Density</h3>
+    <div class="slider-group">
+      <div class="slider-label"><span>Spawn Rate</span><span class="val" id="spawnRateVal"></span></div>
+      <input type="range" id="spawnRate" min="1" max="30" step="1" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Max Particles</span><span class="val" id="maxParticlesVal"></span></div>
+      <input type="range" id="maxParticles" min="500" max="6000" step="100" oninput="updateFx()">
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <h3>Particle Shape</h3>
+    <div class="slider-group">
+      <div class="slider-label"><span>Min Size</span><span class="val" id="sizeMinVal"></span></div>
+      <input type="range" id="sizeMin" min="0.2" max="4" step="0.1" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Max Size</span><span class="val" id="sizeMaxVal"></span></div>
+      <input type="range" id="sizeMax" min="1" max="12" step="0.5" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Size Shrink</span><span class="val" id="sizeShrinkVal"></span></div>
+      <input type="range" id="sizeShrink" min="0.980" max="1.000" step="0.001" oninput="updateFx()">
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <h3>Motion</h3>
+    <div class="slider-group">
+      <div class="slider-label"><span>Vortex Spin</span><span class="val" id="vortexSpinVal"></span></div>
+      <input type="range" id="vortexSpin" min="0" max="0.25" step="0.005" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Spread</span><span class="val" id="spreadVal"></span></div>
+      <input type="range" id="spread" min="0.1" max="3.0" step="0.1" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Drift Speed</span><span class="val" id="driftVal"></span></div>
+      <input type="range" id="drift" min="0.05" max="0.8" step="0.01" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Turbulence</span><span class="val" id="turbulenceVal"></span></div>
+      <input type="range" id="turbulence" min="0" max="2.0" step="0.05" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Drag</span><span class="val" id="dragVal"></span></div>
+      <input type="range" id="drag" min="0.950" max="0.999" step="0.001" oninput="updateFx()">
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <h3>Lifetime</h3>
+    <div class="slider-group">
+      <div class="slider-label"><span>Decay Rate</span><span class="val" id="decayVal"></span></div>
+      <input type="range" id="decay" min="0.002" max="0.030" step="0.001" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Fade Curve</span><span class="val" id="fadeCurveVal"></span></div>
+      <input type="range" id="fadeCurve" min="0.5" max="3.0" step="0.1" oninput="updateFx()">
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <h3>Color</h3>
+    <div class="slider-group">
+      <div class="slider-label"><span>Hue Speed</span><span class="val" id="hueSpeedVal"></span></div>
+      <input type="range" id="hueSpeed" min="0" max="5" step="0.1" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Hue Range</span><span class="val" id="hueRangeVal"></span></div>
+      <input type="range" id="hueRange" min="5" max="360" step="5" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Saturation</span><span class="val" id="saturationVal"></span></div>
+      <input type="range" id="saturation" min="0" max="100" step="1" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Brightness</span><span class="val" id="brightnessVal"></span></div>
+      <input type="range" id="brightness" min="20" max="95" step="1" oninput="updateFx()">
+    </div>
+    <div class="slider-group">
+      <div class="slider-label"><span>Opacity</span><span class="val" id="opacityVal"></span></div>
+      <input type="range" id="opacity" min="0.1" max="1.0" step="0.05" oninput="updateFx()">
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <h3>Blending</h3>
+    <div class="preset-row">
+      <button class="preset-btn" id="blendLighter" onclick="setBlend('lighter')">Additive</button>
+      <button class="preset-btn" id="blendScreen" onclick="setBlend('screen')">Screen</button>
+      <button class="preset-btn" id="blendSource" onclick="setBlend('source-over')">Normal</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlay" class="visible">
+  <h1>VORTEX</h1>
+  <div class="subtitle">von Kármán Pong</div>
+  <div class="prompt">PRESS SPACE TO BEGIN</div>
+  <div class="controls">
+    <div><span>PLAYER 1</span>W / S</div>
+    <div><span>PLAYER 2</span>↑ / ↓</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+
+// ─── Canvas sizing ───
+const W = 1200, H = 700;
+canvas.width = W;
+canvas.height = H;
+
+// ─── FX Settings (the knobs) ───
+const fx = {
+  spawnRate: 8,
+  maxParticles: 2000,
+  sizeMin: 1.0,
+  sizeMax: 4.0,
+  sizeShrink: 0.997,
+  vortexSpin: 0.06,
+  spread: 0.8,
+  drift: 0.3,
+  turbulence: 0.3,
+  drag: 0.985,
+  decay: 0.010,
+  fadeCurve: 2.0,
+  hueSpeed: 1.5,
+  hueRange: 60,
+  saturation: 90,
+  brightness: 65,
+  opacity: 0.7,
+  blendMode: 'lighter'
+};
+
+// ─── Presets ───
+const presets = {
+  vortex: {
+    spawnRate: 8, maxParticles: 2000, sizeMin: 1.0, sizeMax: 4.0, sizeShrink: 0.997,
+    vortexSpin: 0.08, spread: 0.8, drift: 0.3, turbulence: 0.3, drag: 0.985,
+    decay: 0.010, fadeCurve: 2.0, hueSpeed: 1.5, hueRange: 60, saturation: 90,
+    brightness: 65, opacity: 0.7, blendMode: 'lighter'
+  },
+  smoke: {
+    spawnRate: 14, maxParticles: 4000, sizeMin: 2.0, sizeMax: 10.0, sizeShrink: 0.998,
+    vortexSpin: 0.015, spread: 1.4, drift: 0.12, turbulence: 1.2, drag: 0.992,
+    decay: 0.004, fadeCurve: 1.2, hueSpeed: 0.4, hueRange: 40, saturation: 25,
+    brightness: 55, opacity: 0.25, blendMode: 'screen'
+  },
+  fluid: {
+    spawnRate: 20, maxParticles: 5000, sizeMin: 1.5, sizeMax: 6.0, sizeShrink: 0.999,
+    vortexSpin: 0.03, spread: 1.8, drift: 0.15, turbulence: 0.6, drag: 0.994,
+    decay: 0.003, fadeCurve: 1.0, hueSpeed: 0.8, hueRange: 120, saturation: 50,
+    brightness: 60, opacity: 0.35, blendMode: 'screen'
+  },
+  plasma: {
+    spawnRate: 12, maxParticles: 3000, sizeMin: 0.5, sizeMax: 5.0, sizeShrink: 0.995,
+    vortexSpin: 0.15, spread: 0.6, drift: 0.4, turbulence: 0.5, drag: 0.980,
+    decay: 0.008, fadeCurve: 2.5, hueSpeed: 3.0, hueRange: 360, saturation: 100,
+    brightness: 70, opacity: 0.85, blendMode: 'lighter'
+  },
+  nebula: {
+    spawnRate: 18, maxParticles: 5000, sizeMin: 3.0, sizeMax: 12.0, sizeShrink: 0.999,
+    vortexSpin: 0.01, spread: 2.5, drift: 0.08, turbulence: 0.8, drag: 0.996,
+    decay: 0.003, fadeCurve: 0.8, hueSpeed: 0.3, hueRange: 180, saturation: 60,
+    brightness: 45, opacity: 0.18, blendMode: 'screen'
+  },
+  ember: {
+    spawnRate: 10, maxParticles: 2500, sizeMin: 0.3, sizeMax: 3.0, sizeShrink: 0.993,
+    vortexSpin: 0.04, spread: 1.0, drift: 0.35, turbulence: 0.9, drag: 0.988,
+    decay: 0.012, fadeCurve: 3.0, hueSpeed: 0.5, hueRange: 40, saturation: 95,
+    brightness: 60, opacity: 0.9, blendMode: 'lighter'
+  }
+};
+
+// ─── Settings UI ───
+const settingsPanel = document.getElementById('settingsPanel');
+const settingsBtn = document.getElementById('settingsBtn');
+let settingsOpen = false;
+
+function toggleSettings() {
+  settingsOpen = !settingsOpen;
+  settingsPanel.classList.toggle('open', settingsOpen);
+  document.body.style.cursor = settingsOpen ? 'default' : 'none';
+}
+settingsBtn.addEventListener('click', toggleSettings);
+
+function updateFx() {
+  const ids = ['spawnRate','maxParticles','sizeMin','sizeMax','sizeShrink','vortexSpin',
+    'spread','drift','turbulence','drag','decay','fadeCurve','hueSpeed','hueRange',
+    'saturation','brightness','opacity'];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el) {
+      fx[id] = parseFloat(el.value);
+      const valEl = document.getElementById(id + 'Val');
+      if (valEl) valEl.textContent = el.value;
+    }
+  }
+  // Clear active preset buttons
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+}
+
+function syncSlidersToFx() {
+  const ids = ['spawnRate','maxParticles','sizeMin','sizeMax','sizeShrink','vortexSpin',
+    'spread','drift','turbulence','drag','decay','fadeCurve','hueSpeed','hueRange',
+    'saturation','brightness','opacity'];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.value = fx[id];
+      const valEl = document.getElementById(id + 'Val');
+      if (valEl) valEl.textContent = fx[id];
+    }
+  }
+  // Update blend buttons
+  document.querySelectorAll('#blendLighter,#blendScreen,#blendSource').forEach(b => b.classList.remove('active'));
+  if (fx.blendMode === 'lighter') document.getElementById('blendLighter').classList.add('active');
+  else if (fx.blendMode === 'screen') document.getElementById('blendScreen').classList.add('active');
+  else document.getElementById('blendSource').classList.add('active');
+}
+
+function setBlend(mode) {
+  fx.blendMode = mode;
+  document.querySelectorAll('#blendLighter,#blendScreen,#blendSource').forEach(b => b.classList.remove('active'));
+  if (mode === 'lighter') document.getElementById('blendLighter').classList.add('active');
+  else if (mode === 'screen') document.getElementById('blendScreen').classList.add('active');
+  else document.getElementById('blendSource').classList.add('active');
+}
+
+function applyPreset(name) {
+  const p = presets[name];
+  if (!p) return;
+  Object.assign(fx, p);
+  syncSlidersToFx();
+  // Highlight active preset
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// Init sliders
+syncSlidersToFx();
+applyPreset('vortex');
+
+// ─── Game State ───
+const STATE = { MENU: 0, PLAYING: 1, SCORED: 2, GAMEOVER: 3 };
+let gameState = STATE.MENU;
+let shakeX = 0, shakeY = 0, shakeMag = 0;
+let flashAlpha = 0;
+let hueOffset = 0;
+
+// ─── Paddles ───
+const PADDLE_W = 14, PADDLE_H = 110, PADDLE_SPEED = 7;
+const paddles = [
+  { x: 40, y: H / 2 - PADDLE_H / 2, w: PADDLE_W, h: PADDLE_H, score: 0, vy: 0, glow: 0 },
+  { x: W - 40 - PADDLE_W, y: H / 2 - PADDLE_H / 2, w: PADDLE_W, h: PADDLE_H, score: 0, vy: 0, glow: 0 }
+];
+
+// ─── Ball ───
+const BALL_R = 8;
+const BALL_BASE_SPEED = 5.5;
+let ball = { x: W / 2, y: H / 2, vx: 0, vy: 0, speed: BALL_BASE_SPEED, r: BALL_R, trail: [] };
+
+// ─── Vortex Particles ───
+let particles = [];
+
+class Particle {
+  constructor(x, y, vx, vy, hue, size, vortexSide, vortexStrength) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.hue = hue;
+    this.size = size;
+    this.life = 1.0;
+    this.decay = fx.decay + Math.random() * fx.decay * 0.5;
+    this.vortexSide = vortexSide;
+    this.vortexStrength = vortexStrength;
+    this.angle = Math.random() * Math.PI * 2;
+    this.angularVel = (fx.vortexSpin + Math.random() * fx.vortexSpin) * vortexSide;
+    this.orbitalRadius = 2 + Math.random() * 8;
+    this.turbulence = Math.random() * fx.turbulence;
+  }
+
+  update() {
+    this.angle += this.angularVel * this.vortexStrength;
+    this.orbitalRadius += 0.15;
+
+    const noiseX = (Math.random() - 0.5) * this.turbulence;
+    const noiseY = (Math.random() - 0.5) * this.turbulence;
+
+    const spiralX = Math.cos(this.angle) * this.orbitalRadius * 0.02;
+    const spiralY = Math.sin(this.angle) * this.orbitalRadius * 0.02;
+
+    this.x += this.vx * fx.drift + spiralX + noiseX;
+    this.y += this.vy * fx.drift + spiralY + noiseY;
+
+    this.vx *= fx.drag;
+    this.vy *= fx.drag;
+
+    this.life -= this.decay;
+    this.size *= fx.sizeShrink;
+  }
+
+  draw() {
+    if (this.life <= 0) return;
+    const alpha = Math.pow(this.life, fx.fadeCurve) * fx.opacity;
+    const sat = fx.saturation;
+    const light = fx.brightness;
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, Math.max(0.3, this.size), 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${this.hue % 360}, ${sat}%, ${light}%, ${alpha})`;
+    ctx.fill();
+
+    // Inner glow for larger particles
+    if (this.size > 2.5 && this.life > 0.4) {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${this.hue % 360}, 100%, ${Math.min(95, light + 25)}%, ${alpha * 0.4})`;
+      ctx.fill();
+    }
+  }
+}
+
+// ─── Spawn vortex particles ───
+function spawnVortexParticles() {
+  if (ball.vx === 0 && ball.vy === 0) return;
+
+  const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+  const spawnCount = Math.floor(fx.spawnRate * 0.5 + speed * fx.spawnRate * 0.15);
+  const moveAngle = Math.atan2(ball.vy, ball.vx);
+  const wakeAngle = moveAngle + Math.PI;
+
+  for (let i = 0; i < spawnCount && particles.length < fx.maxParticles; i++) {
+    const side = (i % 2 === 0) ? 1 : -1;
+
+    const lateralOffset = side * (BALL_R * 0.5 + Math.random() * BALL_R * fx.spread);
+    const perpAngle = moveAngle + Math.PI / 2;
+
+    const sx = ball.x + Math.cos(wakeAngle) * (BALL_R + Math.random() * 4)
+             + Math.cos(perpAngle) * lateralOffset;
+    const sy = ball.y + Math.sin(wakeAngle) * (BALL_R + Math.random() * 4)
+             + Math.sin(perpAngle) * lateralOffset;
+
+    const vMag = speed * (0.2 + Math.random() * 0.3);
+    const vAngle = wakeAngle + (Math.random() - 0.5) * fx.spread;
+    const vx = Math.cos(vAngle) * vMag;
+    const vy = Math.sin(vAngle) * vMag;
+
+    const hue = (hueOffset + Math.random() * fx.hueRange) % 360;
+    const size = fx.sizeMin + Math.random() * (fx.sizeMax - fx.sizeMin) + speed * 0.15;
+    const vortexStrength = 0.5 + speed * 0.15;
+
+    particles.push(new Particle(sx, sy, vx, vy, hue, size, side, vortexStrength));
+  }
+
+  // Dust particles
+  for (let i = 0; i < 2 && particles.length < fx.maxParticles; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = BALL_R + Math.random() * 3;
+    const sx = ball.x + Math.cos(angle) * dist;
+    const sy = ball.y + Math.sin(angle) * dist;
+    const hue = (hueOffset + 30 + Math.random() * fx.hueRange * 0.5) % 360;
+    particles.push(new Particle(sx, sy, ball.vx * -0.1, ball.vy * -0.1, hue, fx.sizeMin * 0.5 + Math.random() * 0.5, (Math.random() > 0.5 ? 1 : -1), 0.3));
+  }
+}
+
+// ─── Input ───
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (gameState === STATE.MENU || gameState === STATE.GAMEOVER) {
+      startGame();
+    }
+  }
+  if (e.code === 'Escape') {
+    if (settingsOpen) toggleSettings();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ─── Game Logic ───
+function startGame() {
+  paddles[0].score = 0;
+  paddles[1].score = 0;
+  paddles[0].y = H / 2 - PADDLE_H / 2;
+  paddles[1].y = H / 2 - PADDLE_H / 2;
+  particles = [];
+  gameState = STATE.PLAYING;
+  overlay.classList.remove('visible');
+  resetBall(Math.random() > 0.5 ? 1 : -1);
+}
+
+function resetBall(direction) {
+  ball.x = W / 2;
+  ball.y = H / 2;
+  ball.speed = BALL_BASE_SPEED;
+  const angle = (Math.random() - 0.5) * 0.8;
+  ball.vx = Math.cos(angle) * ball.speed * direction;
+  ball.vy = Math.sin(angle) * ball.speed;
+  ball.trail = [];
+}
+
+function scored(playerIndex) {
+  paddles[playerIndex].score++;
+  paddles[playerIndex].glow = 1;
+  shakeMag = 12;
+  flashAlpha = 0.3;
+
+  for (let i = 0; i < 80 && particles.length < fx.maxParticles; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const spd = 2 + Math.random() * 5;
+    const hue = (hueOffset + Math.random() * 360) % 360;
+    particles.push(new Particle(ball.x, ball.y, Math.cos(angle) * spd, Math.sin(angle) * spd, hue, 2 + Math.random() * 4, (Math.random() > 0.5 ? 1 : -1), 1));
+  }
+
+  if (paddles[playerIndex].score >= 5) {
+    gameState = STATE.GAMEOVER;
+    showGameOver(playerIndex);
+  } else {
+    gameState = STATE.SCORED;
+    setTimeout(() => {
+      if (gameState === STATE.SCORED) {
+        gameState = STATE.PLAYING;
+        resetBall(playerIndex === 0 ? -1 : 1);
+      }
+    }, 800);
+  }
+}
+
+function showGameOver(winner) {
+  overlay.innerHTML = `
+    <div class="winner" style="color: ${winner === 0 ? '#ff4488' : '#44aaff'};">PLAYER ${winner + 1} WINS</div>
+    <h1>VORTEX</h1>
+    <div class="prompt">PRESS SPACE TO RESTART</div>
+  `;
+  setTimeout(() => overlay.classList.add('visible'), 500);
+}
+
+// ─── Collision ───
+function paddleCollision(p, paddle) {
+  return p.x - p.r < paddle.x + paddle.w &&
+         p.x + p.r > paddle.x &&
+         p.y - p.r < paddle.y + paddle.h &&
+         p.y + p.r > paddle.y;
+}
+
+// ─── Update ───
+function update() {
+  hueOffset += fx.hueSpeed;
+
+  if (keys['KeyW']) paddles[0].vy = -PADDLE_SPEED;
+  else if (keys['KeyS']) paddles[0].vy = PADDLE_SPEED;
+  else paddles[0].vy *= 0.8;
+
+  if (keys['ArrowUp']) paddles[1].vy = -PADDLE_SPEED;
+  else if (keys['ArrowDown']) paddles[1].vy = PADDLE_SPEED;
+  else paddles[1].vy *= 0.8;
+
+  for (const p of paddles) {
+    p.y += p.vy;
+    p.y = Math.max(0, Math.min(H - p.h, p.y));
+    p.glow *= 0.95;
+  }
+
+  if (gameState === STATE.PLAYING) {
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    ball.trail.push({ x: ball.x, y: ball.y });
+    if (ball.trail.length > 12) ball.trail.shift();
+
+    if (ball.y - ball.r <= 0) { ball.y = ball.r; ball.vy = Math.abs(ball.vy); spawnBounceParticles(); }
+    if (ball.y + ball.r >= H) { ball.y = H - ball.r; ball.vy = -Math.abs(ball.vy); spawnBounceParticles(); }
+
+    for (let i = 0; i < 2; i++) {
+      if (paddleCollision(ball, paddles[i])) {
+        paddles[i].glow = 0.6;
+        shakeMag = 4;
+
+        if (i === 0) ball.x = paddles[i].x + paddles[i].w + ball.r;
+        else ball.x = paddles[i].x - ball.r;
+
+        const hitPos = (ball.y - (paddles[i].y + paddles[i].h / 2)) / (paddles[i].h / 2);
+        const maxAngle = Math.PI / 3.5;
+        const angle = hitPos * maxAngle;
+
+        ball.speed = Math.min(ball.speed + 0.35, 14);
+        ball.vx = Math.cos(angle) * ball.speed * (i === 0 ? 1 : -1);
+        ball.vy = Math.sin(angle) * ball.speed;
+        ball.vy += paddles[i].vy * 0.25;
+
+        for (let j = 0; j < 30 && particles.length < fx.maxParticles; j++) {
+          const a = (Math.random() - 0.5) * Math.PI;
+          const spd = 1 + Math.random() * 3;
+          const dir = i === 0 ? 1 : -1;
+          const hue = (hueOffset + Math.random() * 90) % 360;
+          particles.push(new Particle(ball.x, ball.y, Math.cos(a) * spd * dir, Math.sin(a) * spd, hue, fx.sizeMin + Math.random() * fx.sizeMax * 0.5, (Math.random() > 0.5 ? 1 : -1), 1.2));
+        }
+      }
+    }
+
+    if (ball.x < -30) scored(1);
+    if (ball.x > W + 30) scored(0);
+
+    spawnVortexParticles();
+  }
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    particles[i].update();
+    if (particles[i].life <= 0 || particles[i].size < 0.1) {
+      particles.splice(i, 1);
+    }
+  }
+
+  if (shakeMag > 0.1) {
+    shakeX = (Math.random() - 0.5) * shakeMag;
+    shakeY = (Math.random() - 0.5) * shakeMag;
+    shakeMag *= 0.85;
+  } else {
+    shakeX = shakeY = shakeMag = 0;
+  }
+
+  flashAlpha *= 0.9;
+}
+
+function spawnBounceParticles() {
+  for (let i = 0; i < 15 && particles.length < fx.maxParticles; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const spd = 1 + Math.random() * 2;
+    const hue = (hueOffset + Math.random() * fx.hueRange) % 360;
+    particles.push(new Particle(ball.x, ball.y, Math.cos(angle) * spd, Math.sin(angle) * spd, hue, fx.sizeMin + Math.random() * 2, (Math.random() > 0.5 ? 1 : -1), 0.8));
+  }
+}
+
+// ─── Draw ───
+function draw() {
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
+  ctx.fillStyle = '#050508';
+  ctx.fillRect(-20, -20, W + 40, H + 40);
+
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.012)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Center line
+  ctx.setLineDash([8, 16]);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W / 2, 0);
+  ctx.lineTo(W / 2, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ─── Particles ───
+  ctx.globalCompositeOperation = fx.blendMode;
+  for (const p of particles) {
+    p.draw();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // ─── Ball trail glow ───
+  if (ball.trail.length > 1) {
+    ctx.globalCompositeOperation = fx.blendMode;
+    for (let i = 0; i < ball.trail.length - 1; i++) {
+      const t = i / ball.trail.length;
+      const alpha = t * 0.15;
+      const size = ball.r * t * 0.8;
+      const hue = (hueOffset + i * 15) % 360;
+      ctx.beginPath();
+      ctx.arc(ball.trail[i].x, ball.trail[i].y, size, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${hue}, 100%, 70%, ${alpha})`;
+      ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ─── Ball ───
+  if (gameState === STATE.PLAYING || gameState === STATE.SCORED) {
+    const ballGlow = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, ball.r * 5);
+    const glowHue = hueOffset % 360;
+    ballGlow.addColorStop(0, `hsla(${glowHue}, 100%, 80%, 0.3)`);
+    ballGlow.addColorStop(0.3, `hsla(${glowHue}, 100%, 60%, 0.1)`);
+    ballGlow.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r * 5, 0, Math.PI * 2);
+    ctx.fillStyle = ballGlow;
+    ctx.fill();
+
+    const ballGrad = ctx.createRadialGradient(ball.x - 2, ball.y - 2, 0, ball.x, ball.y, ball.r);
+    ballGrad.addColorStop(0, '#ffffff');
+    ballGrad.addColorStop(0.6, '#eeeeff');
+    ballGrad.addColorStop(1, '#aabbdd');
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fillStyle = ballGrad;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(ball.x - 2, ball.y - 2, ball.r * 0.35, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fill();
+  }
+
+  // ─── Paddles ───
+  for (let i = 0; i < 2; i++) {
+    const p = paddles[i];
+    const color = i === 0 ? [255, 68, 136] : [68, 170, 255];
+
+    if (p.glow > 0.01) {
+      ctx.shadowColor = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${p.glow})`;
+      ctx.shadowBlur = 30 * p.glow;
+    }
+
+    const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+    const alpha = 0.8 + p.glow * 0.2;
+    grad.addColorStop(0, `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha * 0.6})`);
+    grad.addColorStop(0.5, `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`);
+    grad.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha * 0.6})`);
+
+    const radius = p.w / 2;
+    ctx.beginPath();
+    ctx.moveTo(p.x + radius, p.y);
+    ctx.lineTo(p.x + p.w - radius, p.y);
+    ctx.arcTo(p.x + p.w, p.y, p.x + p.w, p.y + radius, radius);
+    ctx.lineTo(p.x + p.w, p.y + p.h - radius);
+    ctx.arcTo(p.x + p.w, p.y + p.h, p.x + p.w - radius, p.y + p.h, radius);
+    ctx.lineTo(p.x + radius, p.y + p.h);
+    ctx.arcTo(p.x, p.y + p.h, p.x, p.y + p.h - radius, radius);
+    ctx.lineTo(p.x, p.y + radius);
+    ctx.arcTo(p.x, p.y, p.x + radius, p.y, radius);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.4)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+  }
+
+  // ─── Scores ───
+  ctx.font = '900 64px Orbitron';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = `rgba(255, 68, 136, ${0.15 + paddles[0].glow * 0.5})`;
+  ctx.fillText(paddles[0].score, W / 2 - 100, 30);
+  ctx.fillStyle = `rgba(68, 170, 255, ${0.15 + paddles[1].glow * 0.5})`;
+  ctx.fillText(paddles[1].score, W / 2 + 100, 30);
+
+  // ─── Score flash ───
+  if (flashAlpha > 0.005) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+    ctx.fillRect(-20, -20, W + 40, H + 40);
+  }
+
+  // ─── Speed indicator ───
+  if (gameState === STATE.PLAYING) {
+    const speedPct = ((ball.speed - BALL_BASE_SPEED) / (14 - BALL_BASE_SPEED));
+    if (speedPct > 0.01) {
+      ctx.font = '300 11px Rajdhani';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillStyle = `rgba(255,255,255, ${0.15 + speedPct * 0.2})`;
+      ctx.fillText(`MACH ${(speedPct * 3).toFixed(1)}`, W / 2, H - 16);
+    }
+  }
+
+  // ─── Particle count (debug) ───
+  ctx.font = '300 10px Rajdhani';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillText(`${particles.length} particles`, 12, H - 8);
+
+  ctx.restore();
+}
+
+// ─── Game Loop ───
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+window.addEventListener('keydown', e => {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+    e.preventDefault();
+  }
+});
+</script>
+</body>
+</html>
